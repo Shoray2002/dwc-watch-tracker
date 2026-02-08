@@ -8,14 +8,21 @@ TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
 STATE_FILE="${STATE_FILE:-watch_state.txt}"
 
 check_availability() {
+    echo "  → Fetching page: $WATCH_URL"
     local response
     response=$(curl -sL "$WATCH_URL")
     
+    local response_length=${#response}
+    echo "  → Response received: $response_length characters"
+    
     if echo "$response" | grep -qi "sold out\|unavailable\|out of stock"; then
+        echo "  → Detection: Found 'sold out' keywords"
         echo "SOLD_OUT"
     elif echo "$response" | grep -qi "add to cart\|buy\|add to bag"; then
+        echo "  → Detection: Found 'add to cart' keywords"
         echo "AVAILABLE"
     else
+        echo "  → Detection: No matching keywords found"
         echo "UNKNOWN"
     fi
 }
