@@ -2,69 +2,45 @@ name: Watch Availability Checker
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
   check-availability:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Download previous state
         uses: actions/download-artifact@v4
         with:
           name: watch-state
           path: .
         continue-on-error: true
-        
-      - name: Check if previous state exists
-        run: |
-          echo "=========================================="
-          echo "Checking for previous state file..."
-          if [ -f watch_state.txt ]; then
-            echo "✓ Previous state found:"
-            cat watch_state.txt
-          else
-            echo "⚠ No previous state (first run or artifact expired)"
-          fi
-          echo "=========================================="
-          echo ""
-        
+
       - name: Make script executable
         run: chmod +x check_watch.sh
-        
+
       - name: Check watch availability
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           STATE_FILE: watch_state.txt
         run: |
-          echo "=========================================="
-          echo "Starting watch availability check..."
-          echo "Timestamp: $(date -u)"
-          echo "=========================================="
-          echo ""
+          echo "════════════════════════════════════════════════"
+          echo "Running Watch Availability Check"
+          echo "Time: $(date)"
+          echo "════════════════════════════════════════════════"
           ./check_watch.sh
           echo ""
-          echo "=========================================="
-          echo "Check completed!"
-          echo "=========================================="
-        
-      - name: Show final state
-        run: |
+          echo "════════════════════════════════════════════════"
+          echo "Final State:"
+          cat watch_state.txt
           echo ""
-          echo "=========================================="
-          echo "Final state saved:"
-          if [ -f watch_state.txt ]; then
-            cat watch_state.txt
-          else
-            echo "⚠ ERROR: State file not created!"
-          fi
-          echo "=========================================="
-        
+          echo "════════════════════════════════════════════════"
+
       - name: Upload state
         uses: actions/upload-artifact@v4
         with:
