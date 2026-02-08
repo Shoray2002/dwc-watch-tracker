@@ -13,13 +13,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download previous state
-        uses: actions/download-artifact@v4
-        with:
-          name: watch-state
-          path: .
-        continue-on-error: true
-
       - name: Make script executable
         run: chmod +x check_watch.sh
 
@@ -27,23 +20,10 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          STATE_FILE: watch_state.txt
         run: |
           echo "════════════════════════════════════════════════"
           echo "Running Watch Availability Check"
           echo "Time: $(date)"
           echo "════════════════════════════════════════════════"
           ./check_watch.sh
-          echo ""
           echo "════════════════════════════════════════════════"
-          echo "Final State:"
-          cat watch_state.txt
-          echo ""
-          echo "════════════════════════════════════════════════"
-
-      - name: Upload state
-        uses: actions/upload-artifact@v4
-        with:
-          name: watch-state
-          path: watch_state.txt
-          retention-days: 90
