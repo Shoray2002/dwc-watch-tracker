@@ -1,0 +1,50 @@
+name: Test Notification
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-notification:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send test notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          echo "════════════════════════════════════════════════"
+          echo "Testing Telegram Notification"
+          echo "Time: $(date)"
+          echo "════════════════════════════════════════════════"
+          
+          if [[ -z "$TELEGRAM_BOT_TOKEN" ]] || [[ -z "$TELEGRAM_CHAT_ID" ]]; then
+            echo "❌ ERROR: Telegram credentials not configured!"
+            echo "Please set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID secrets in repository settings."
+            exit 1
+          fi
+          
+          TELEGRAM_URL="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
+          MESSAGE="🧪 <b>Test Notification</b>%0A%0AYour DWC Watch Tracker is configured correctly!%0A%0A✓ Telegram bot is working%0A✓ Notifications will be sent when the watch becomes available%0A%0A🕐 Test run at: $(date '+%Y-%m-%d %H:%M:%S UTC')"
+          
+          RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "$TELEGRAM_URL" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=${MESSAGE}" \
+            -d "parse_mode=HTML")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d':' -f2)
+          
+          if [[ "$HTTP_CODE" == "200" ]]; then
+            echo "════════════════════════════════════════════════"
+            echo "✓ Test notification sent successfully!"
+            echo "════════════════════════════════════════════════"
+          else
+            echo "════════════════════════════════════════════════"
+            echo "❌ Failed to send notification. HTTP Code: $HTTP_CODE"
+            echo "Response: $(echo "$RESPONSE" | grep -v "HTTP_CODE:")"
+            echo "════════════════════════════════════════════════"
+            exit 1
+          fi
