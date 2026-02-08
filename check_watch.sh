@@ -13,7 +13,7 @@ check_availability() {
     
     if echo "$response" | grep -qi "sold out\|unavailable\|out of stock"; then
         echo "SOLD_OUT"
-    elif echo "$response" | grep -qi "add to cart\|buy now\|add to bag"; then
+    elif echo "$response" | grep -qi "add to cart\|buy\|add to bag"; then
         echo "AVAILABLE"
     else
         echo "UNKNOWN"
