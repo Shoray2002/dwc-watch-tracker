@@ -20,6 +20,19 @@ jobs:
           path: .
         continue-on-error: true
         
+      - name: Check if previous state exists
+        run: |
+          echo "=========================================="
+          echo "Checking for previous state file..."
+          if [ -f watch_state.txt ]; then
+            echo "✓ Previous state found:"
+            cat watch_state.txt
+          else
+            echo "⚠ No previous state (first run or artifact expired)"
+          fi
+          echo "=========================================="
+          echo ""
+        
       - name: Make script executable
         run: chmod +x check_watch.sh
         
@@ -28,7 +41,29 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           STATE_FILE: watch_state.txt
-        run: ./check_watch.sh
+        run: |
+          echo "=========================================="
+          echo "Starting watch availability check..."
+          echo "Timestamp: $(date -u)"
+          echo "=========================================="
+          echo ""
+          ./check_watch.sh
+          echo ""
+          echo "=========================================="
+          echo "Check completed!"
+          echo "=========================================="
+        
+      - name: Show final state
+        run: |
+          echo ""
+          echo "=========================================="
+          echo "Final state saved:"
+          if [ -f watch_state.txt ]; then
+            cat watch_state.txt
+          else
+            echo "⚠ ERROR: State file not created!"
+          fi
+          echo "=========================================="
         
       - name: Upload state
         uses: actions/upload-artifact@v4

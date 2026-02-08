@@ -40,35 +40,53 @@ send_telegram_notification() {
 }
 
 main() {
-    echo "Checking watch availability at: $WATCH_URL"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🔍 DWC Terra Watch Availability Checker"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "📍 Target URL: $WATCH_URL"
+    echo ""
     
+    echo "🌐 Checking availability..."
     local current_status
     current_status=$(check_availability)
+    echo ""
     
-    echo "Current status: $current_status"
+    echo "📊 Status Report:"
+    echo "  Current status: $current_status"
     
     local previous_status="UNKNOWN"
     if [[ -f "$STATE_FILE" ]]; then
         previous_status=$(cat "$STATE_FILE")
-        echo "Previous status: $previous_status"
+        echo "  Previous status: $previous_status"
     else
-        echo "No previous state found (first run)"
+        echo "  Previous status: (none - first run)"
     fi
+    echo ""
     
+    echo "🔔 Notification Check:"
     if [[ "$current_status" == "AVAILABLE" ]] && [[ "$previous_status" != "AVAILABLE" ]]; then
+        echo "  📢 STATUS CHANGE DETECTED: $previous_status → AVAILABLE"
         local message="🎉 <b>WATCH ALERT!</b> 🎉%0A%0AThe DWC Terra watch is now <b>AVAILABLE</b>!%0A%0A🔗 <a href=\"$WATCH_URL\">Buy Now!</a>"
         send_telegram_notification "$message"
-        echo "✓ Status changed to AVAILABLE - notification sent!"
+        echo "  ✅ Telegram notification sent (AVAILABLE)"
     elif [[ "$current_status" == "SOLD_OUT" ]] && [[ "$previous_status" == "AVAILABLE" ]]; then
+        echo "  📢 STATUS CHANGE DETECTED: $previous_status → SOLD_OUT"
         local message="😔 The DWC Terra watch is now <b>SOLD OUT</b>.%0A%0A🔗 <a href=\"$WATCH_URL\">Check here</a>"
         send_telegram_notification "$message"
-        echo "✓ Status changed to SOLD_OUT - notification sent!"
+        echo "  ✅ Telegram notification sent (SOLD_OUT)"
     else
-        echo "No status change detected."
+        echo "  ℹ️  No status change (no notification sent)"
     fi
+    echo ""
     
+    echo "💾 Saving state..."
     echo "$current_status" > "$STATE_FILE"
-    echo "State saved to $STATE_FILE"
+    echo "  ✅ State saved: $current_status → $STATE_FILE"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "✅ Check completed successfully!"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 
 main
