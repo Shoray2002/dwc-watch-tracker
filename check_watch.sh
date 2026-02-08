@@ -15,14 +15,14 @@ check_availability() {
     local response_length=${#response}
     echo "  → Response received: $response_length characters" >&2
     
-    if echo "$response" | grep -qi "sold out\|unavailable\|out of stock"; then
-        echo "  → Detection: Found 'sold out' keywords" >&2
+    if echo "$response" | grep -qi "notify me when\|back in stock\|soldOut.*Sold Out"; then
+        echo "  → Detection: Found 'sold out' / 'notify me' keywords" >&2
         echo "SOLD_OUT"
-    elif echo "$response" | grep -qi "add to cart\|buy\|add to bag"; then
-        echo "  → Detection: Found 'add to cart' keywords" >&2
+    elif echo "$response" | grep -qi "add to cart\|add to bag\|buy now"; then
+        echo "  → Detection: Found 'add to cart' / 'buy now' keywords" >&2
         echo "AVAILABLE"
     else
-        echo "  → Detection: No matching keywords found" >&2
+        echo "  → Detection: No clear availability indicators found" >&2
         echo "UNKNOWN"
     fi
 }
