@@ -3,6 +3,7 @@
 set -euo pipefail
 
 WATCH_URL="https://delhiwatchcompany.com/products/dwc-terra"
+JSON_URL="https://delhiwatchcompany.com/products/dwc-terra.js"
 TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
 TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
 
@@ -25,36 +26,43 @@ send_telegram_notification() {
     echo "Telegram notification sent!"
 }
 
+parse_json_available() {
+    local json="$1"
+    
+    if command -v jq &> /dev/null; then
+        echo "$json" | jq -r '.available'
+    else
+        echo "$json" | grep -o '"available":[^,]*' | head -1 | cut -d':' -f2 | tr -d ' '
+    fi
+}
+
 main() {
-    echo "Checking watch availability at: $WATCH_URL"
+    echo "Checking watch availability at: $JSON_URL"
     
     local response
-    response=$(curl -sL "$WATCH_URL" 2>/dev/null)
+    response=$(curl -sL "$JSON_URL" 2>/dev/null)
     
-    local has_sold_out=false
-    local has_add_to_cart=false
-    
-    if echo "$response" | grep -qi "sold out\|unavailable\|out of stock"; then
-        has_sold_out=true
+    if [[ -z "$response" ]]; then
+        echo "Error: Failed to fetch product data"
+        exit 1
     fi
     
-    if echo "$response" | grep -qi "add to cart\|add to bag\|buy now\|purchase"; then
-        has_add_to_cart=true
-    fi
+    local available
+    available=$(parse_json_available "$response")
     
-    echo "Debug: sold_out=$has_sold_out, add_to_cart=$has_add_to_cart"
+    echo "Debug: available=$available"
     
-    if [[ "$has_sold_out" == true ]]; then
-        echo "Status: SOLD OUT ❌"
-        echo "Reason: Found 'sold out' text on page"
-    elif [[ "$has_add_to_cart" == true ]]; then
+    if [[ "$available" == "true" ]]; then
         echo "Status: AVAILABLE ✓"
         local message="🎉 <b>WATCH ALERT!</b> 🎉%0A%0AThe DWC Terra watch is <b>AVAILABLE</b>!%0A%0A🔗 <a href=\"$WATCH_URL\">Buy Now!</a>"
         send_telegram_notification "$message"
         echo "✓ Notification sent - watch is available!"
+    elif [[ "$available" == "false" ]]; then
+        echo "Status: SOLD OUT ❌"
     else
         echo "Status: UNKNOWN ❓"
-        echo "Could not determine status - page structure may have changed"
+        echo "Could not parse availability from response"
+        exit 1
     fi
 }
 
