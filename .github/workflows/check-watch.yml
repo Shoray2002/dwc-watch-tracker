@@ -1,0 +1,38 @@
+name: Watch Availability Checker
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check-availability:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Download previous state
+        uses: actions/download-artifact@v4
+        with:
+          name: watch-state
+          path: .
+        continue-on-error: true
+        
+      - name: Make script executable
+        run: chmod +x check_watch.sh
+        
+      - name: Check watch availability
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          STATE_FILE: watch_state.txt
+        run: ./check_watch.sh
+        
+      - name: Upload state
+        uses: actions/upload-artifact@v4
+        with:
+          name: watch-state
+          path: watch_state.txt
+          retention-days: 90
