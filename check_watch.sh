@@ -8,21 +8,14 @@ TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
 STATE_FILE="${STATE_FILE:-watch_state.txt}"
 
 check_availability() {
-    echo "  → Fetching page: $WATCH_URL" >&2
     local response
     response=$(curl -sL "$WATCH_URL")
     
-    local response_length=${#response}
-    echo "  → Response received: $response_length characters" >&2
-    
-    if echo "$response" | grep -qi "notify me when\|back in stock\|soldOut.*Sold Out"; then
-        echo "  → Detection: Found 'sold out' / 'notify me' keywords" >&2
+    if echo "$response" | grep -qi "sold out\|unavailable\|out of stock"; then
         echo "SOLD_OUT"
-    elif echo "$response" | grep -qi "add to cart\|add to bag\|buy now"; then
-        echo "  → Detection: Found 'add to cart' / 'buy now' keywords" >&2
+    elif echo "$response" | grep -qi "add to cart\|buy\|add to bag"; then
         echo "AVAILABLE"
     else
-        echo "  → Detection: No clear availability indicators found" >&2
         echo "UNKNOWN"
     fi
 }
@@ -47,53 +40,35 @@ send_telegram_notification() {
 }
 
 main() {
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "🔍 DWC Terra Watch Availability Checker"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    echo "📍 Target URL: $WATCH_URL"
-    echo ""
+    echo "Checking watch availability at: $WATCH_URL"
     
-    echo "🌐 Checking availability..."
     local current_status
     current_status=$(check_availability)
-    echo ""
     
-    echo "📊 Status Report:"
-    echo "  Current status: $current_status"
+    echo "Current status: $current_status"
     
     local previous_status="UNKNOWN"
     if [[ -f "$STATE_FILE" ]]; then
         previous_status=$(cat "$STATE_FILE")
-        echo "  Previous status: $previous_status"
+        echo "Previous status: $previous_status"
     else
-        echo "  Previous status: (none - first run)"
+        echo "No previous state found (first run)"
     fi
-    echo ""
     
-    echo "🔔 Notification Check:"
     if [[ "$current_status" == "AVAILABLE" ]] && [[ "$previous_status" != "AVAILABLE" ]]; then
-        echo "  📢 STATUS CHANGE DETECTED: $previous_status → AVAILABLE"
         local message="🎉 <b>WATCH ALERT!</b> 🎉%0A%0AThe DWC Terra watch is now <b>AVAILABLE</b>!%0A%0A🔗 <a href=\"$WATCH_URL\">Buy Now!</a>"
         send_telegram_notification "$message"
-        echo "  ✅ Telegram notification sent (AVAILABLE)"
+        echo "✓ Status changed to AVAILABLE - notification sent!"
     elif [[ "$current_status" == "SOLD_OUT" ]] && [[ "$previous_status" == "AVAILABLE" ]]; then
-        echo "  📢 STATUS CHANGE DETECTED: $previous_status → SOLD_OUT"
         local message="😔 The DWC Terra watch is now <b>SOLD OUT</b>.%0A%0A🔗 <a href=\"$WATCH_URL\">Check here</a>"
         send_telegram_notification "$message"
-        echo "  ✅ Telegram notification sent (SOLD_OUT)"
+        echo "✓ Status changed to SOLD_OUT - notification sent!"
     else
-        echo "  ℹ️  No status change (no notification sent)"
+        echo "No status change detected."
     fi
-    echo ""
     
-    echo "💾 Saving state..."
     echo "$current_status" > "$STATE_FILE"
-    echo "  ✅ State saved: $current_status → $STATE_FILE"
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "✅ Check completed successfully!"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "State saved to $STATE_FILE"
 }
 
 main
