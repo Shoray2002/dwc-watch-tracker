@@ -29,16 +29,32 @@ main() {
     echo "Checking watch availability at: $WATCH_URL"
     
     local response
-    response=$(curl -sL "$WATCH_URL")
+    response=$(curl -sL "$WATCH_URL" 2>/dev/null)
     
-    if echo "$response" | grep -qi "sold out"; then
+    local has_sold_out=false
+    local has_add_to_cart=false
+    
+    if echo "$response" | grep -qi "sold out\|unavailable\|out of stock"; then
+        has_sold_out=true
+    fi
+    
+    if echo "$response" | grep -qi "add to cart\|add to bag\|buy now\|purchase"; then
+        has_add_to_cart=true
+    fi
+    
+    echo "Debug: sold_out=$has_sold_out, add_to_cart=$has_add_to_cart"
+    
+    if [[ "$has_sold_out" == true ]]; then
         echo "Status: SOLD OUT ❌"
-        echo "No notification sent (watch is sold out)"
-    else
+        echo "Reason: Found 'sold out' text on page"
+    elif [[ "$has_add_to_cart" == true ]]; then
         echo "Status: AVAILABLE ✓"
         local message="🎉 <b>WATCH ALERT!</b> 🎉%0A%0AThe DWC Terra watch is <b>AVAILABLE</b>!%0A%0A🔗 <a href=\"$WATCH_URL\">Buy Now!</a>"
         send_telegram_notification "$message"
         echo "✓ Notification sent - watch is available!"
+    else
+        echo "Status: UNKNOWN ❓"
+        echo "Could not determine status - page structure may have changed"
     fi
 }
 
